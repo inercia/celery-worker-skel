@@ -1,0 +1,196 @@
+#!/bin/sh
+
+# Basic support for RedHat style chkconfig
+#
+# chkconfig: - 99 01
+# description: Starts and stops the XXXX service.
+#
+### BEGIN INIT INFO
+# Provides:       ${presets:pkg-name}
+# Required-Start: $remote_fs $all
+# Should-Start:
+# Required-Stop:
+# Default-Start:  2 3 5
+# Default-Stop:   0 6
+# Description:    Starts and stops the XXXX service.
+### END INIT INFO
+
+
+. /etc/rc.d/init.d/functions
+
+
+PREFIX=${presets:install-prefix}
+AUX=${presets:install-prefix}/scripts/functions.sh
+
+[ -f $AUX ] || { echo "ERROR: $AUX not found" ; exit 1 ; }
+. $AUX
+
+export XXXX_PREFIX=$PREFIX
+export PATH=$PREFIX/bin:/usr/local/python/bin:/usr/local/bin:/usr/bin:$PATH
+export LD_LIBRARY_PATH=$PREFIX/lib:/usr/local/python/lib:/usr/local/lib:/usr/lib:$LD_LIBRARY_PATH
+
+XXXX_PID=$PREFIX/run/XXXX-server.pid
+XXXX_CONFIG=$PREFIX/conf/XXXX.conf
+XXXX_USER=${presets:system-user-name}
+XXXX_GROUP=${presets:system-group-name}
+
+IPTABLES_SCRIPT=$PREFIX/scripts/iptables/setup_iptables.sh
+
+# time to wait between stop/start
+WAIT_TIME=10
+
+
+
+[ -x $XXXX_SERVER  ] || { echo "ERROR: admin script $XXXX_SERVER doesn't exist" ; exit 1 ; }
+[ -f $XXXX_CONFIG ] || { echo "ERROR: configuration file $XXXX_CONFIG doesn't exist" ; exit 1 ; }
+
+####################################################################################################
+
+
+# some dirs we need before starting things
+CREATE_DIRS="\
+        logs \
+        var  var/lib"
+
+###################################################################################################
+
+check_python() {
+    PYVERS=$(python2.7 --version)
+    RETVAL=$?
+    if [ $RETVAL -ne 0 ] ; then
+        echo "ERROR: no python 2.7 found on path=$PATH"
+        exit $RETVAL
+    else
+        echo ">>> Found Python $PYVERS"
+    fi
+}
+
+setup_iptables() {
+    if [ -x $IPTABLES_SCRIPT ] ; then
+        echo ">>> Setting up the iptables..."
+        $PREFIX/scripts/iptables/setup_iptables.sh --prefix $PREFIX
+    fi
+}
+
+###################################################################################################
+fix_permissions() {
+    echo ">>> Fixing permissions in $PREFIX..."
+    chown -R $XXXX_USER:$XXXX_GROUP  $PREFIX
+}
+
+###################################################################################################
+
+kill_XXXX_server() {
+    echo ">>> Killing any previous instance..."    
+    BA=$(basename $XXXX_SERVER)
+    PIDS=$(ps ax | grep $BA | grep -v grep | awk '{ print $1 }')
+    if [ "x$PIDS" != "x" ] ; then
+        kill -9 $PIDS
+    fi    
+}
+
+kill_known_pids() {
+    for i in $PREFIX/run/*.pid ; do
+        if [ -f $i ] ; then
+            PID=$(cat $i)
+            if [ "x$PID" != "x" ] ; then
+                kill -TERM $(cat $i)   2>/dev/null
+            fi
+        fi
+    done
+}
+
+###################################################################################################
+
+start()
+{
+    for DIR in $CREATE_DIRS ; do
+        if [ ! -d $PREFIX/$DIR ] ; then 
+            echo ">>> Preparing: creating $PREFIX/$DIR"
+            mkdir -p $PREFIX/$DIR
+        fi
+    done
+
+    check_python
+    setup_iptables
+
+    kill_XXXX_server
+    fix_permissions
+    
+    echo ">>> Starting XXXX server (running in background)..."
+    $XXXX_SERVER --config=$XXXX_CONFIG --prefix=$PREFIX &
+    RETVAL=$?
+    echo
+    [ $RETVAL -ne 0 ] && exit $RETVAL            
+}
+
+stop()
+{
+    if [ -f $XXXX_PID ] ; then
+        echo -n ">>> Stopping XXXX server..."
+        
+        PID=$(cat $XXXX_PID)
+    
+        if [ "x$PID" != "x" ] ; then
+            FOUND=$(ps ax | awk '{ print $1 }' | grep $PID)
+            while [ "$FOUND" = "$PID" ] ; do
+                kill -TERM $PID  2>/dev/null
+
+                echo -n "."
+                sleep 2
+        
+                FOUND=$(ps ax | awk '{ print $1 }' | grep $PID)
+            done
+            echo " done!"
+        else
+            echo " XXXX server doesn't seem to be running."
+        fi
+    fi
+    
+    kill_known_pids    
+}
+
+restart()
+{
+    stop
+    sleep $WAIT_TIME
+    start
+}
+
+reload()
+{
+    echo -n ">>> Reloading XXXX server..."
+    if [ -f $XXXX_PID ] ; then
+        kill -HUP $(cat $XXXX_PID)
+        RETVAL=$?
+        echo " done!"
+        [ $RETVAL -ne 0 ] && exit $RETVAL            
+    else
+        echo " XXXX server doesn't seem to be running."
+        exit 0
+    fi
+}
+
+case "$1" in
+    'start')
+        start
+    ;;
+
+    'stop')
+        stop
+    ;;
+
+    'reload')
+        reload
+    ;;
+
+    'restart')
+        restart
+    ;;
+
+    *)
+        echo "Usage: $0 {start|stop|restart|reload}"
+        exit 1
+    ;;
+esac
+

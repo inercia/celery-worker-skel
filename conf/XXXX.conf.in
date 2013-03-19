@@ -1,0 +1,82 @@
+###################################################################################################
+# XXXX configuration file
+###################################################################################################
+
+# some notes:
+# - all %(Y)s variables refers to a variable Y defined in the same or in the 'DEFAULT' sections.
+# - some variables can be overridden by environment variables. they will be specified with 'environment variables:'
+# - some settings must be changed on production machines: look for things like '{{ SOME_VARIABLE }}'
+#   and set the right values, and check all the 'production:' comments
+#
+
+###################################################################################################
+# XXXX: common
+###################################################################################################
+[DEFAULT]
+
+# directories
+install-prefix   = ${presets:install-prefix}
+bin-dir          = %(install-prefix)s/bin
+conf-dir         = %(install-prefix)s/conf
+var-dir          = %(install-prefix)s/var
+lib-dir          = %(install-prefix)s/lib
+run-dir          = %(install-prefix)s/run
+log-dir          = %(install-prefix)s/logs
+var-lib-dir      = %(install-prefix)s/var/lib
+tmp-dir          = %(install-prefix)s/tmp
+
+# default user for running subprocesses
+default-user     = ${presets:system-user-name}
+
+# the host name
+# if 'unknown', this will be automatically set by the XXXX script
+# production: change it to the visible host name
+hostname         = unknown
+bind-ip          = 0.0.0.0
+
+# debug mode
+# production: disable it
+debug            = no
+
+
+###################################################################################################
+# XXXX
+###################################################################################################
+
+[XXXX]
+debug            = true
+
+###################################################################################################
+# XXXX logging
+###################################################################################################
+
+# see http://docs.python.org/library/logging.config.html#logging.config.fileConfig
+# for the full logging configuration format
+
+[XXXX:logging:file]
+enabled          = yes
+level            = DEBUG
+filename         = %(log-dir)s/XXXX.log
+max-length       = 10485760
+backup           = 3
+
+[XXXX:logging:console]
+enabled          = yes
+level            = WARNING
+
+[XXXX:logging:mail]
+enabled          = false
+level            = CRITICAL
+mailhost         = mailhost.hi.inet
+fromaddr         = XXXX-monitor@someone.com
+toaddrs          = XXXX-monitor@someone.com
+subject          = XXXX altert
+credentials      =
+
+[XXXX:logging:tcp]
+enabled          = no
+level            = WARNING
+host             = localhost
+port             = 43333
+
+
