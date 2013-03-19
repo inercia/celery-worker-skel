@@ -1,18 +1,18 @@
 Overview
 ========
 
-A Python project template
-
-[![Build Status](https://travis-ci.org/inercia/python-skel.png?branch=master)](https://travis-ci.org/inercia/python-skel)
+A Celery Python worker
 
 Characteristics
 ===============
 
 - automatic virtualenv management and requirements installation (type `make`)
+- automatic import of the tasks in the given namespace
+- creation of a Celery command (ie, `celery XXXX`) as well as a standalone
+  script (ie, `bin/XXXX`).
 - separate development and production configurations. When you type `make`, we
   will use the development build process (`buildout.devel.cfg`) and
-  settings (`reqs.cfg` and `reqs.devel.cfg`), but a `make rpm` will use the
-  build (`buildout.deploy.cfg`) and settings (just `reqs.cfg`) for
+  settings, but a `make rpm` will use the build (`buildout.deploy.cfg`) for
   deployment on production machines.
 - project cleanup (type `make distclean`)
 - automatic Sphinx documentation (type `make docs` or `make docs-pdf` on the
