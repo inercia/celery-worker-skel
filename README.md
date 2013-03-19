@@ -34,8 +34,9 @@ Usage
 - search for all the occurrences of XXXX and replace them by your project name
 - search for all the XXXX* files and rename them accordingly
 - customize anything you want on the `buildout*` scripts
-- add all your requierements in the `reqs.*` files
-- add your code in the `sources` directory
+- add your code in the `sources` directory,
+- add your tasks in the `plugins` directory, and update the `buildout/develop`
+  directories
 
 
 FAQ
